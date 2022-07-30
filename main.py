@@ -18,12 +18,12 @@ def test():
     plt.ylabel('y (feet)')
     x = []
     y = []
-    for i in range(a.len()):
+    for i in range(a.size()):
         x.append(a[i].x)
         y.append(a[i].y)
 
     plt.gca().set_aspect('equal', adjustable='box')
     plt.plot(x, y, 'bo')
-    plt.show()
+    #plt.show()
 
 test()

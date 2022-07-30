@@ -29,7 +29,7 @@ class DiscretePath:
         i = max(min(i,len(self.path)-1), 0)
         return self.path[i]
 
-    def len(self):
+    def size(self):
         return len(self.path)
     
     def getCurvature(self, i):

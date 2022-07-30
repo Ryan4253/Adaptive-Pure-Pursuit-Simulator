@@ -50,7 +50,6 @@ class Bezier:
         for t in range (0, 100, 1):
             totaldist += self.getPoint(t / 100.0).distTo(self.getPoint(t / 100.0 + 0.01))
         
-        print(totaldist)
         distPerSegment = totaldist / math.ceil(totaldist / length)
         traversed = 0
         ret = [self.getPoint(0)]
