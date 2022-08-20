@@ -18,6 +18,15 @@ class Pose:
             self.point = Point(a, b)
             self.rotation = copy.deepcopy(c)
 
+    def X(self):
+        return self.point.x
+
+    def Y(self):
+        return self.point.y
+
+    def Theta(self):
+        return self.rotation.theta
+
     def __eq__(self, rhs):
         return self.point == rhs.point and self.rotation == rhs.rotation
 
