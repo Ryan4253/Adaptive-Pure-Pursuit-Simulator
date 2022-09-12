@@ -3,8 +3,10 @@ import math
 import time
 import pygame
 from threading import Thread, Lock
+from Bezier import Bezier
 from Pose import Pose
 from Rotation import Rotation
+from DiscretePath import DiscretePath
 
 
 class DifferentialDrive:
@@ -25,6 +27,30 @@ class DifferentialDrive:
     def getState(self):
         self.mutex.acquire()
         ret = self.pose
+        self.mutex.release()
+        return ret
+
+    def getLeftVel(self):
+        self.mutex.acquire()
+        ret = self.pose.vl
+        self.mutex.release()
+        return ret
+    
+    def getRightVel(self):
+        self.mutex.acquire()
+        ret = self.pose.vr
+        self.mutex.release()
+        return ret
+    
+    def getLeftAccel(self):
+        self.mutex.acquire()
+        ret = self.pose.al
+        self.mutex.release()
+        return ret
+
+    def getRightAccel(self):
+        self.mutex.acquire()
+        ret = self.pose.ar
         self.mutex.release()
         return ret
 
@@ -86,22 +112,27 @@ class Envir:
         pygame.display.set_caption("Differential Drive Simulator")
         self.map = pygame.display.set_mode((self.width, self.height))
 
+def drawPath(map, color, path):
+    for i in range(1, path.size()):
+        pygame.draw.line(map, color, (path[i-1].x, path[i-1].y), (path[i].x, path[i].y))
+
 pygame.init()
 running = True
 
-environment = Envir(800, 600)
-
+environment = Envir(1920, 1080)
 robot = DifferentialDrive(Pose(400, 300, Rotation(0)), 100, 500, 500)
 renderer = ChassisRenderer(robot, environment.map, r"/home/ryan/Documents/Pure-Pursuit-Simulator/SpeVm6L.png")
+path = Bezier([Bezier.Knot(100, 100, 0, 300), Bezier.Knot(1200, 600, 0, 300)]).generate_by_length(10)
 
 while running:
     for event in pygame.event.get():
         if(event.type == pygame.QUIT):
             running = False
-
+    drawPath(environment.map, environment.red, path)
     robot.move()
     renderer.render()
     pygame.display.update()
-    environment.map.fill(environment.red)
+    environment.map.fill(environment.black)
     time.sleep(0.01)
+
 
