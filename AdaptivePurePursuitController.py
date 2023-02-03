@@ -4,7 +4,6 @@ from Point import Point
 from DifferentialDrive import DifferentialDrive
 from PurePursuitPath import PurePursuitPath
 from PurePursuitGains import PurePursuitGains
-from threading import Thread, Lock
 
 class AdaptivePurePursuitController:
     def __init__(self, chassis, gains, lookAhead):
@@ -20,7 +19,6 @@ class AdaptivePurePursuitController:
         self.prevLookAheadIndex = 0
         self.prevLookAheadT = 0
 
-        self.mutex = Lock()
 
     def initialize(self):
         self.settled = False
@@ -29,20 +27,14 @@ class AdaptivePurePursuitController:
         self.prevLookAheadT = 0
 
     def followPath(self, path):
-        self.mutex.acquire()
         self.initialize()
         self.path = PurePursuitPath(path, self.gains)
-        self.mutex.release()
     
     def setGains(self, gains):
-        self.mutex.acquire()
         self.gains = gains
-        self.mutex.release()
 
     def setLookAhead(self, lookAhead):
-        self.mutex.acquire()
         self.lookAhead = lookAhead
-        self.mutex.release()
 
     def getT(self, start, end, pos):
         d = end - start
@@ -96,10 +88,7 @@ class AdaptivePurePursuitController:
                     self.prevLookAheadIndex = i
                     self.prevLookAheadT = t
                     break
-                
-        
-        
-
+            
         return self.path[self.prevLookAheadIndex] + (self.path[self.prevLookAheadIndex+1] - self.path[self.prevLookAheadIndex]) * self.prevLookAheadT
     
     def calcCurvature(self, iPos, lookAheadPt):
@@ -146,13 +135,6 @@ class AdaptivePurePursuitController:
         
     def loop(self):
         while(True):
-            self.mutex.acquire()
-            if(self.settled):
-                self.mutex.release()
-                time.sleep(0.01)
-                continue
-            
-
             pos = self.chassis.getState()
             closest = self.getClosestPoint(pos)
             lookAheadPt = self.getLookAheadPoint(pos)
@@ -171,7 +153,4 @@ class AdaptivePurePursuitController:
         
             if endInLook and endInPath:
                 self.settled = False
-            
-            self.mutex.release()
-            time.sleep(0.01)
-        
+                    
