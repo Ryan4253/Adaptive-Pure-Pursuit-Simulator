@@ -1,6 +1,5 @@
 from Rotation import Rotation
 from Point import Point
-import math
 import copy
 
 class Pose: 

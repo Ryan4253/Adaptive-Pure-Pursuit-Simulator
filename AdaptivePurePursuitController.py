@@ -1,9 +1,7 @@
 import math
 import time
 from Point import Point
-from DifferentialDrive import DifferentialDrive
 from PurePursuitPath import PurePursuitPath
-from PurePursuitGains import PurePursuitGains
 
 class AdaptivePurePursuitController:
     def __init__(self, chassis, gains, lookAhead):

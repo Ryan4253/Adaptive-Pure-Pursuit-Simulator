@@ -1,5 +1,4 @@
 from DiscretePath import DiscretePath
-from Point import Point
 import copy
 import math
 
