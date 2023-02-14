@@ -37,8 +37,8 @@ class DifferentialDrive:
     def move(self, dt):
         self.vl += 0.5 * self.al * dt
         self.vr += 0.5 * self.ar * dt
-        self.pose.point.x += (self.vl + self.vr) / 2 * math.cos(self.pose.Theta()) * (dt)
-        self.pose.point.y -= (self.vl + self.vr) / 2 * math.sin(self.pose.Theta()) * (dt)
+        self.pose.translation.x += (self.vl + self.vr) / 2 * math.cos(self.pose.Theta()) * (dt)
+        self.pose.translation.y -= (self.vl + self.vr) / 2 * math.sin(self.pose.Theta()) * (dt)
         self.pose.rotation.theta += (self.vl - self.vr) / self.trackWidth * (dt)
         self.vl += 0.5 * self.al * dt
         self.vr += 0.5 * self.ar * dt

@@ -2,6 +2,7 @@ import math
 import time
 from Point import Point
 from PurePursuitPath import PurePursuitPath
+import matplotlib.pyplot as plt
 
 class AdaptivePurePursuitController:
     def __init__(self, chassis, gains, lookAhead):
@@ -23,10 +24,6 @@ class AdaptivePurePursuitController:
         self.prevClosest = None
         self.prevLookAheadIndex = 0
         self.prevLookAheadT = 0
-
-    def followPath(self, path):
-        self.initialize()
-        self.path = PurePursuitPath(path, self.gains)
     
     def setGains(self, gains):
         self.gains = gains
@@ -58,10 +55,10 @@ class AdaptivePurePursuitController:
 
     def getClosestPoint(self, currentPos):
         minDist = 10000000
-        closest = 0 if prevClosest == None else 0
+        closest = 0 if self.prevClosest == None else 0
 
         for i in range(self.path.size()):
-            dist = currentPos.translation.distTo(self.ath.getPoint(i))
+            dist = currentPos.translation.distTo(self.path.getPoint(i))
             if(dist < minDist):
                 minDist = dist
                 closest = i
@@ -72,10 +69,7 @@ class AdaptivePurePursuitController:
         return closest
             
     def getLookAheadPoint(self, currentPos):
-        closestIndex = 0 if self.prevClosest == 0 else None
-
-
-        for i in range(math.max(closestIndex, self.prevLookAheadIndex), self.path.size()-1):
+        for i in range(0, self.path.size()-1):
             start = self.path.getPoint(i)
             end = self.path.getPoint(i+1)
 
@@ -94,8 +88,8 @@ class AdaptivePurePursuitController:
         b = 1
         c = math.tan(iPos.Theta())*iPos.X() - iPos.Y()
 
-        x = abs(lookAheadPt.X() * a + lookAheadPt.Y() * b + c) / math.sqrt(a * a + b * b)
-        sideL = math.sin(iPos.Theta()) * (lookAheadPt.X() - iPos.X()) - math.cos(iPos.Theta()) * (lookAheadPt.Y() - iPos.Y())
+        x = abs(lookAheadPt.x * a + lookAheadPt.y * b + c) / math.sqrt(a * a + b * b)
+        sideL = math.sin(iPos.Theta()) * (lookAheadPt.x - iPos.X()) - math.cos(iPos.Theta()) * (lookAheadPt.y - iPos.Y())
         side = sideL / abs(sideL)
 
         if(sideL == 0):
@@ -105,8 +99,8 @@ class AdaptivePurePursuitController:
 
     def calcVelocity(self, iCurvature, iClosestPt):
         vel =  -self.path.getVelocity(iClosestPt) if self.isReversed else self.path.getVelocity(iClosestPt)
-        vl = vel * (2+iCurvature*self.chassis.wheelTrack) / 2
-        vr = vel * (2-iCurvature*self.chassis.wheelTrack) / 2
+        vl = vel * (2+iCurvature*self.chassis.trackWidth) / 2
+        vr = vel * (2-iCurvature*self.chassis.trackWidth) / 2
 
         if(self.isReversed):
             return (vr, vl)
@@ -116,8 +110,8 @@ class AdaptivePurePursuitController:
     
     def calcAcceleration(self, iCurvature, iClosestPt):
         accel = -self.path.getAcceleration(iClosestPt) if self.isReversed else self.path.getAcceleration(iClosestPt)
-        al = accel * (2 + iCurvature * self.chassis.wheelTrack) / 2
-        ar = accel * (2 - iCurvature * self.chassis.wheelTrack) / 2
+        al = accel * (2 + iCurvature * self.chassis.trackWidth) / 2
+        ar = accel * (2 - iCurvature * self.chassis.trackWidth) / 2
 
         if(self.isReversed):
             return (ar, al)
@@ -126,29 +120,35 @@ class AdaptivePurePursuitController:
         
     def isSettled(self):
         return self.settled
+     
+    def followPath(self, path):
+        self.initialize()
+        self.path = PurePursuitPath(path, self.gains)
 
-    def waitUntilSettled(self):
-        while not self.settled:
-            time.sleep(0.01)
-        
-    def loop(self):
-        while(True):
+        while(not self.settled):
             pos = self.chassis.getState()
             closest = self.getClosestPoint(pos)
             lookAheadPt = self.getLookAheadPoint(pos)
 
-            projectedLookAheadPt = pos.translation + Point((lookAheadPt-pos.getTranslation()).norm() * self.lookAhead)
+            projectedLookAheadPt = pos.translation + Point((lookAheadPt-pos.translation).norm() * self.lookAhead)
             curvature = self.calcCurvature(pos, projectedLookAheadPt)
 
             targetVel = self.calcVelocity(curvature, closest)
             targetAccel = self.calcAcceleration(curvature, closest)
 
-            self.chassis.setAcceleration(targetAccel[0], targetAccel[1])
-            self.chassis.setVelocity(targetVel[0], targetVel[1])
+            self.chassis.setAccel(targetAccel[0], targetAccel[1])
+            self.chassis.setVel(targetVel[0], targetVel[1])
 
-            endInLook = False
-            endInPath = False
-        
-            if endInLook and endInPath:
-                self.settled = False
+            self.chassis.move(0.01)
+
+            # visualize
+            plt.clf()
+            plt.title("Adaptive Pure Pursuit")
+            plt.xlabel('x (feet)')
+            plt.ylabel('y (feet)')
+            plt.gca().set_aspect('equal', adjustable='box')
+            self.path.draw()
+            plt.plot(pos.translation.x, pos.translation.y, 'ro')
+            plt.pause(0.01)
+
                     

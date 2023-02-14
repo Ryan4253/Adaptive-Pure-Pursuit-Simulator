@@ -22,6 +22,8 @@ class Point:
         return self + (-rhs)
 
     def __mul__(self, scalar):
+        if(isinstance(scalar, Point)):
+            return self.x * scalar.x + self.y * scalar.y
         return Point(self.x * scalar, self.y * scalar)
 
     def __truediv__(self, scalar):
