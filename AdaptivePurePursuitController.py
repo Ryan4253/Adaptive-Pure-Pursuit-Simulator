@@ -1,7 +1,10 @@
 import math
 import time
-from Point import Point
+from Point import circleLineIntersection
+from Pose import curvatureToReachPoint
 from PurePursuitPath import PurePursuitPath
+from DiscretePath import closestPoint
+from Math import wheelInverseKinematics
 import matplotlib.pyplot as plt
 
 class AdaptivePurePursuitController:
@@ -9,136 +12,54 @@ class AdaptivePurePursuitController:
         self.chassis = chassis
         self.gains = gains
         self.lookAhead = lookAhead
-
-        self.isReversed = False
-        self.path = None
-        self.isSettled = True
-
-        self.prevClosest = None
-        self.prevLookAheadIndex = 0
-        self.prevLookAheadT = 0
-
-
-    def initialize(self):
-        self.settled = False
-        self.prevClosest = None
-        self.prevLookAheadIndex = 0
-        self.prevLookAheadT = 0
     
     def setGains(self, gains):
         self.gains = gains
 
     def setLookAhead(self, lookAhead):
         self.lookAhead = lookAhead
-
-    def getT(self, start, end, pos):
-        d = end - start
-        f = start - pos.translation
-
-        a = d * d
-        b = 2 * (f * d)
-        c = f * f - self.lookAhead * self.lookAhead
-        discriminant = b * b - 4 * a * c
-
-        if discriminant > 0:
-            dis = math.sqrt(discriminant)
-            t1 = ((-b - dis) / (2 * a))
-            t2 = ((-b + dis) / (2 * a))
-
-            if t2 >= 0 and t2 <= 1:
-                return t2
             
-            elif t1 >= 0 and t1 <= 1:
-                return t1
+    def getLookAheadPoint(self, path, minIndex, position):
+        for i in range(int(minIndex[0]), path.size()-1):
+            start = path[i]
+            end = path[i+1]
 
+            t = circleLineIntersection(start, end, position, self.lookAhead)
+
+            if(t and i+t > minIndex[0]):
+                minIndex[0] = i+t
+                return start + (end - start) * t
+            
         return None
-
-    def getClosestPoint(self, currentPos):
-        minDist = 10000000
-        closest = 0 if self.prevClosest == None else 0
-
-        for i in range(self.path.size()):
-            dist = currentPos.translation.distTo(self.path.getPoint(i))
-            if(dist < minDist):
-                minDist = dist
-                closest = i
-            
-        
-
-        prevClosest = closest
-        return closest
-            
-    def getLookAheadPoint(self, currentPos):
-        for i in range(0, self.path.size()-1):
-            start = self.path.getPoint(i)
-            end = self.path.getPoint(i+1)
-
-            t = self.getT(start, end, currentPos)
-
-            if(t != None):
-                if(i > self.prevLookAheadIndex or t > self.prevLookAheadT):
-                    self.prevLookAheadIndex = i
-                    self.prevLookAheadT = t
-                    break
-            
-        return self.path[self.prevLookAheadIndex] + (self.path[self.prevLookAheadIndex+1] - self.path[self.prevLookAheadIndex]) * self.prevLookAheadT
-    
-    def calcCurvature(self, iPos, lookAheadPt):
-        a = -math.tan(iPos.Theta())
-        b = 1
-        c = math.tan(iPos.Theta())*iPos.X() - iPos.Y()
-
-        x = abs(lookAheadPt.x * a + lookAheadPt.y * b + c) / math.sqrt(a * a + b * b)
-        sideL = math.sin(iPos.Theta()) * (lookAheadPt.x - iPos.X()) - math.cos(iPos.Theta()) * (lookAheadPt.y - iPos.Y())
-        side = sideL / abs(sideL)
-
-        if(sideL == 0):
-            return 0
-        
-        return (2 * x) / (self.lookAhead * self.lookAhead) * side
-
-    def calcVelocity(self, iCurvature, iClosestPt):
-        vel =  -self.path.getVelocity(iClosestPt) if self.isReversed else self.path.getVelocity(iClosestPt)
-        vl = vel * (2+iCurvature*self.chassis.trackWidth) / 2
-        vr = vel * (2-iCurvature*self.chassis.trackWidth) / 2
-
-        if(self.isReversed):
-            return (vr, vl)
-        
-        else:
-            return (vl, vr)
-    
-    def calcAcceleration(self, iCurvature, iClosestPt):
-        accel = -self.path.getAcceleration(iClosestPt) if self.isReversed else self.path.getAcceleration(iClosestPt)
-        al = accel * (2 + iCurvature * self.chassis.trackWidth) / 2
-        ar = accel * (2 - iCurvature * self.chassis.trackWidth) / 2
-
-        if(self.isReversed):
-            return (ar, al)
-        else:
-            return (al, ar)
-        
-    def isSettled(self):
-        return self.settled
      
-    def followPath(self, path):
-        self.initialize()
-        self.path = PurePursuitPath(path, self.gains)
+    def followPath(self, path, reversed =  False, visualize = True):
+        ppPath = PurePursuitPath(path, self.gains)
+        closestPointIndex = 0
+        lookaheadPointT = [0]
+        lookAheadPoint = path[0]
 
-        while(not self.settled):
+        while(closestPointIndex is not path.size()-1):
             pos = self.chassis.getState()
-            closest = self.getClosestPoint(pos)
-            lookAheadPt = self.getLookAheadPoint(pos)
+            closestPointIndex = closestPoint(path, closestPointIndex, path.size(), pos.translation)
+            lookAheadCandidate = self.getLookAheadPoint(path, lookaheadPointT, pos.translation)
+            lookAheadPoint = lookAheadCandidate if lookAheadCandidate is not None else lookAheadPoint
+            
+            print(lookaheadPointT[0])
 
-            projectedLookAheadPt = pos.translation + Point((lookAheadPt-pos.translation).norm() * self.lookAhead)
-            curvature = self.calcCurvature(pos, projectedLookAheadPt)
+            curvature = curvatureToReachPoint(pos, lookAheadPoint)
+            velocity = ppPath.getVelocity(closestPointIndex)
+            acceleration = ppPath.getAcceleration(closestPointIndex)
 
-            targetVel = self.calcVelocity(curvature, closest)
-            targetAccel = self.calcAcceleration(curvature, closest)
+            if reversed:
+                velocity *= -1
+                acceleration *= -1
 
-            self.chassis.setAccel(targetAccel[0], targetAccel[1])
-            self.chassis.setVel(targetVel[0], targetVel[1])
+            vl, vr = wheelInverseKinematics(velocity, curvature, self.chassis.trackWidth)
+            al, ar = wheelInverseKinematics(acceleration, curvature, self.chassis.trackWidth) 
 
+            #good
+            self.chassis.setAccel(al, ar) 
+            self.chassis.setVel(vl, vr)
             self.chassis.move(0.01)
 
             # visualize
@@ -147,8 +68,9 @@ class AdaptivePurePursuitController:
             plt.xlabel('x (feet)')
             plt.ylabel('y (feet)')
             plt.gca().set_aspect('equal', adjustable='box')
-            self.path.draw()
+            path.draw()
             plt.plot(pos.translation.x, pos.translation.y, 'ro')
-            plt.pause(0.01)
+            plt.plot(lookAheadPoint.x, lookAheadPoint.y, 'go')
+            plt.pause(0.001)
 
                     

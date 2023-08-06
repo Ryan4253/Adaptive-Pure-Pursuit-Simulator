@@ -25,6 +25,10 @@ class PurePursuitPath:
             self.velocity[i+1] = min(self.velocity[i+1], math.sqrt(self.velocity[i]*self.velocity[i] + 2 * gains.maxAcceleration * dist));
             self.acceleration.append((self.velocity[i+1] * self.velocity[i+1] - self.velocity[i] * self.velocity[i]) / 2 / dist);
 
+        self.acceleration.append(0)
+        self.acceleration[0] = 0
+        self.velocity[0] = self.velocity[1]
+
     def size(self):
         return self.path.size()
     

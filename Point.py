@@ -52,3 +52,42 @@ class Point:
 
     def rotateBy(self, rhs):
         return Point(self.x * rhs.cosine - self.y * rhs.sine, self.x * rhs.sine + self.y * rhs.cosine)
+    
+def circumradius(A, B, C):
+    a = B.distTo(C)
+    b = C.distTo(A)
+    c = A.distTo(B)
+
+    a2 = a**2
+    b2 = b**2
+    c2 = c**2
+
+    pa = A * (a2 * (b2 + c2 - a2) / ((b+c)*(b+c)-a2) / (a2-(b-c)*(b-c)))
+    pb = B * (b2 * (a2 + c2 - b2) / ((a+c)*(a+c)-b2) / (b2-(a-c)*(a-c)))
+    pc = C * (c2 * (a2 + b2 - c2) / ((a+b)*(a+b)-c2) / (c2-(a-b)*(a-b)))
+
+    center = pa + pb + pc
+
+    return center.distTo(A)
+
+def circleLineIntersection(start, end, pos, radius):
+    d = end - start
+    f = start - pos
+
+    a = d * d
+    b = 2 * (f * d)
+    c = f * f - radius * radius
+    discriminant = b * b - 4 * a * c
+
+    if discriminant > 0:
+        dis = math.sqrt(discriminant)
+        t1 = ((-b - dis) / (2 * a))
+        t2 = ((-b + dis) / (2 * a))
+
+        if t2 >= 0 and t2 <= 1:
+            return t2
+        
+        elif t1 >= 0 and t1 <= 1:
+            return t1
+
+    return None

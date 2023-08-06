@@ -4,10 +4,10 @@ class DifferentialDrive:
     def __init__(self, startPos, trackWidth, maxVel, maxAccel):
         self.pose = startPos
         self.trackWidth = trackWidth
-        self.vl = -500
-        self.vr = 500
-        self.al = 100
-        self.ar = 100
+        self.vl = 0
+        self.vr = 0
+        self.al = 0
+        self.ar = 0
         self.maxVel = maxVel
         self.maxAccel = maxAccel
 
@@ -38,7 +38,7 @@ class DifferentialDrive:
         self.vl += 0.5 * self.al * dt
         self.vr += 0.5 * self.ar * dt
         self.pose.translation.x += (self.vl + self.vr) / 2 * math.cos(self.pose.Theta()) * (dt)
-        self.pose.translation.y -= (self.vl + self.vr) / 2 * math.sin(self.pose.Theta()) * (dt)
-        self.pose.rotation.theta += (self.vl - self.vr) / self.trackWidth * (dt)
+        self.pose.translation.y += (self.vl + self.vr) / 2 * math.sin(self.pose.Theta()) * (dt)
+        self.pose.rotation.theta += (self.vr - self.vl) / self.trackWidth * (dt)
         self.vl += 0.5 * self.al * dt
         self.vr += 0.5 * self.ar * dt
