@@ -44,8 +44,6 @@ class AdaptivePurePursuitController:
             lookAheadCandidate = self.getLookAheadPoint(path, lookaheadPointT, pos.translation)
             lookAheadPoint = lookAheadCandidate if lookAheadCandidate is not None else lookAheadPoint
             
-            print(lookaheadPointT[0])
-
             curvature = curvatureToReachPoint(pos, lookAheadPoint)
             velocity = ppPath.getVelocity(closestPointIndex)
             acceleration = ppPath.getAcceleration(closestPointIndex)
@@ -57,7 +55,6 @@ class AdaptivePurePursuitController:
             vl, vr = wheelInverseKinematics(velocity, curvature, self.chassis.trackWidth)
             al, ar = wheelInverseKinematics(acceleration, curvature, self.chassis.trackWidth) 
 
-            #good
             self.chassis.setAccel(al, ar) 
             self.chassis.setVel(vl, vr)
             self.chassis.move(0.01)
@@ -71,6 +68,6 @@ class AdaptivePurePursuitController:
             path.draw()
             plt.plot(pos.translation.x, pos.translation.y, 'ro')
             plt.plot(lookAheadPoint.x, lookAheadPoint.y, 'go')
-            plt.pause(0.001)
+            plt.pause(0.01)
 
                     
